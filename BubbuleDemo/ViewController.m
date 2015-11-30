@@ -7,6 +7,8 @@
 //
 
 #import "ViewController.h"
+#import "../Bubble/Macros.h"
+#import "../Bubble/ESDBDoer+DBOperation.h"
 
 @interface ViewController ()
 
@@ -16,6 +18,9 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+
+    ESDBDoer *doer = [ESDBDoer DBDoerWithFilePath:@"" createIfNotExists:YES];
+    [doer queryDBModel:[ESDBDoer class] with:nil];
     // Do any additional setup after loading the view, typically from a nib.
 }
 

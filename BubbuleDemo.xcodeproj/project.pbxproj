@@ -13,6 +13,11 @@
 		AB0A4C321C0981790087B29F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AB0A4C301C0981790087B29F /* Main.storyboard */; };
 		AB0A4C341C0981790087B29F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AB0A4C331C0981790087B29F /* Assets.xcassets */; };
 		AB0A4C371C0981790087B29F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AB0A4C351C0981790087B29F /* LaunchScreen.storyboard */; };
+		AB0A4C431C098F840087B29F /* ESBaseModel.m in Sources */ = {isa = PBXBuildFile; fileRef = AB0A4C421C098F840087B29F /* ESBaseModel.m */; };
+		AB0A4C471C09AB620087B29F /* ESDBDoer.m in Sources */ = {isa = PBXBuildFile; fileRef = AB0A4C461C09AB620087B29F /* ESDBDoer.m */; };
+		AB0B40221C09F620007D2157 /* libsqlite3.0.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = AB0B40211C09F620007D2157 /* libsqlite3.0.tbd */; };
+		AB0B40261C0A0156007D2157 /* ESDBDoer+TableManager.m in Sources */ = {isa = PBXBuildFile; fileRef = AB0B40251C0A0156007D2157 /* ESDBDoer+TableManager.m */; };
+		AB0B40291C0A0186007D2157 /* ESDBDoer+DBOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = AB0B40281C0A0186007D2157 /* ESDBDoer+DBOperation.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +31,18 @@
 		AB0A4C331C0981790087B29F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AB0A4C361C0981790087B29F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		AB0A4C381C0981790087B29F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AB0A4C3F1C098CD90087B29F /* ESDBAction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESDBAction.h; sourceTree = "<group>"; };
+		AB0A4C411C098F840087B29F /* ESBaseModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESBaseModel.h; sourceTree = "<group>"; };
+		AB0A4C421C098F840087B29F /* ESBaseModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ESBaseModel.m; sourceTree = "<group>"; };
+		AB0A4C441C09A8D30087B29F /* ESDBModelProtocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESDBModelProtocol.h; sourceTree = "<group>"; };
+		AB0A4C451C09AB620087B29F /* ESDBDoer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ESDBDoer.h; sourceTree = "<group>"; };
+		AB0A4C461C09AB620087B29F /* ESDBDoer.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ESDBDoer.m; sourceTree = "<group>"; };
+		AB0B40211C09F620007D2157 /* libsqlite3.0.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.0.tbd; path = usr/lib/libsqlite3.0.tbd; sourceTree = SDKROOT; };
+		AB0B40231C09F8AF007D2157 /* Macros.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Macros.h; sourceTree = "<group>"; };
+		AB0B40241C0A0156007D2157 /* ESDBDoer+TableManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ESDBDoer+TableManager.h"; sourceTree = "<group>"; };
+		AB0B40251C0A0156007D2157 /* ESDBDoer+TableManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "ESDBDoer+TableManager.m"; sourceTree = "<group>"; };
+		AB0B40271C0A0186007D2157 /* ESDBDoer+DBOperation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "ESDBDoer+DBOperation.h"; sourceTree = "<group>"; };
+		AB0B40281C0A0186007D2157 /* ESDBDoer+DBOperation.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "ESDBDoer+DBOperation.m"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -33,6 +50,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB0B40221C09F620007D2157 /* libsqlite3.0.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -42,6 +60,7 @@
 		AB0A4C1B1C0981790087B29F = {
 			isa = PBXGroup;
 			children = (
+				AB0B40211C09F620007D2157 /* libsqlite3.0.tbd */,
 				AB0A4C3E1C0981A10087B29F /* Bubble */,
 				AB0A4C261C0981790087B29F /* BubbuleDemo */,
 				AB0A4C251C0981790087B29F /* Products */,
@@ -83,6 +102,17 @@
 		AB0A4C3E1C0981A10087B29F /* Bubble */ = {
 			isa = PBXGroup;
 			children = (
+				AB0B40231C09F8AF007D2157 /* Macros.h */,
+				AB0A4C3F1C098CD90087B29F /* ESDBAction.h */,
+				AB0A4C441C09A8D30087B29F /* ESDBModelProtocol.h */,
+				AB0A4C411C098F840087B29F /* ESBaseModel.h */,
+				AB0A4C421C098F840087B29F /* ESBaseModel.m */,
+				AB0A4C451C09AB620087B29F /* ESDBDoer.h */,
+				AB0A4C461C09AB620087B29F /* ESDBDoer.m */,
+				AB0B40241C0A0156007D2157 /* ESDBDoer+TableManager.h */,
+				AB0B40251C0A0156007D2157 /* ESDBDoer+TableManager.m */,
+				AB0B40271C0A0186007D2157 /* ESDBDoer+DBOperation.h */,
+				AB0B40281C0A0186007D2157 /* ESDBDoer+DBOperation.m */,
 			);
 			path = Bubble;
 			sourceTree = "<group>";
@@ -157,8 +187,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB0B40261C0A0156007D2157 /* ESDBDoer+TableManager.m in Sources */,
+				AB0A4C431C098F840087B29F /* ESBaseModel.m in Sources */,
 				AB0A4C2F1C0981790087B29F /* ViewController.m in Sources */,
+				AB0B40291C0A0186007D2157 /* ESDBDoer+DBOperation.m in Sources */,
 				AB0A4C2C1C0981790087B29F /* AppDelegate.m in Sources */,
+				AB0A4C471C09AB620087B29F /* ESDBDoer.m in Sources */,
 				AB0A4C291C0981790087B29F /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
