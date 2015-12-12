@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3F79CCFD1C19812400CBE45D /* Utilities.m in Sources */ = {isa = PBXBuildFile; fileRef = 3F79CCFC1C19812400CBE45D /* Utilities.m */; };
 		AB0A4C291C0981790087B29F /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = AB0A4C281C0981790087B29F /* main.m */; };
 		AB0A4C2C1C0981790087B29F /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = AB0A4C2B1C0981790087B29F /* AppDelegate.m */; };
 		AB0A4C2F1C0981790087B29F /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = AB0A4C2E1C0981790087B29F /* ViewController.m */; };
@@ -21,6 +22,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3F79CCFB1C19812400CBE45D /* Utilities.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Utilities.h; sourceTree = "<group>"; };
+		3F79CCFC1C19812400CBE45D /* Utilities.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = Utilities.m; sourceTree = "<group>"; };
 		AB0A4C241C0981790087B29F /* BubbuleDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BubbuleDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB0A4C281C0981790087B29F /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		AB0A4C2A1C0981790087B29F /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -113,6 +116,8 @@
 				AB0B40251C0A0156007D2157 /* ESDBDoer+TableManager.m */,
 				AB0B40271C0A0186007D2157 /* ESDBDoer+DBOperation.h */,
 				AB0B40281C0A0186007D2157 /* ESDBDoer+DBOperation.m */,
+				3F79CCFB1C19812400CBE45D /* Utilities.h */,
+				3F79CCFC1C19812400CBE45D /* Utilities.m */,
 			);
 			path = Bubble;
 			sourceTree = "<group>";
@@ -189,6 +194,7 @@
 			files = (
 				AB0B40261C0A0156007D2157 /* ESDBDoer+TableManager.m in Sources */,
 				AB0A4C431C098F840087B29F /* ESBaseModel.m in Sources */,
+				3F79CCFD1C19812400CBE45D /* Utilities.m in Sources */,
 				AB0A4C2F1C0981790087B29F /* ViewController.m in Sources */,
 				AB0B40291C0A0186007D2157 /* ESDBDoer+DBOperation.m in Sources */,
 				AB0A4C2C1C0981790087B29F /* AppDelegate.m in Sources */,

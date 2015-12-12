@@ -15,13 +15,13 @@
 + (NSString *)createTableSQL;
 
 // s
-+ (NSString *)rowNameForIvar:(NSString *)ivarName;
++ (NSString *)columnNameForIvar:(NSString *)ivarName;
 
 // table name.
 + (NSString *)tableName;
 
 // primary key.
-+ (id)primaryKey;
++ (NSString *)primaryKey;
 
 // sign for table of model.
 + (NSString *)modelSign;

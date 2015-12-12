@@ -35,11 +35,15 @@
 - (BOOL)registerDBModel:(Class<ESDBModelProtocol>)modelClass, ...
 {
     if (modelClass) {
+        
+    }else {
+        
     }
+    
     va_list list;
     va_start(list, modelClass);
-    
-    while (va_arg(list, Class) != NULL) {
+    Class c = nil;
+    while ((c = va_arg(list, Class)) != nil) {
         
     }
     
@@ -51,7 +55,7 @@
 - (void)createManageTable
 {
     NSString *sql =
-    @"CREATE TABLE bubble_manage_table IF NOT EXITS { \
+    @"CREATE TABLE IF NOT EXITS { \
     table_name TEXT NOT NULL PRIMARY KEY, \
     table_sign TEXT NOT NULL, \
     }";
@@ -61,11 +65,6 @@
     }
     
     [self close];
-}
-
-- (int)sqlite3DataTypeOfTypeEncoding:(const void *)te
-{
-    
 }
 
 @end

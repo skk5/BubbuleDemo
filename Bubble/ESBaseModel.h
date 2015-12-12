@@ -11,6 +11,4 @@
 
 @interface ESBaseModel : NSObject <ESDBModelProtocol>
 
-
-
 @end

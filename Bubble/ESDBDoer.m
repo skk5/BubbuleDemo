@@ -50,10 +50,4 @@
     return nil;
 }
 
-- (BOOL)registerDBModel:(Class<ESDBModelProtocol>)modelClass, ...
-{
-    // TODO:
-    return NO;
-}
-
 @end
