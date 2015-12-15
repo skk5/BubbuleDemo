@@ -8,6 +8,8 @@
 
 #import "ESDBDoer+TableManager.h"
 #import "ESDBDoer+DBOperation.h"
+#import "ESDBModelProtocol.h"
+#import "ESBaseModel.h"
 #import <objc/runtime.h>
 
 @implementation ESDBDoer (TableManager)
@@ -32,22 +34,27 @@
     return YES;
 }
 
-- (BOOL)registerDBModel:(Class<ESDBModelProtocol>)modelClass, ...
+- (BOOL)registerDBModel:(Class)modelClass, ...
 {
-    if (modelClass) {
+    if(modelClass == nil) return NO;
+    
+    if ([self open]) {
         
-    }else {
+        [self execute:[modelClass createTableSQL]];
         
+        va_list list;
+        va_start(list, modelClass);
+        Class c = nil;
+        while ((c = va_arg(list, Class)) != nil) {
+            [self execute:[c createTableSQL]];
+        }
+        
+        va_end(list);
+        
+        [self close];
     }
     
-    va_list list;
-    va_start(list, modelClass);
-    Class c = nil;
-    while ((c = va_arg(list, Class)) != nil) {
-        
-    }
     
-    va_end(list);
     
     return YES;
 }

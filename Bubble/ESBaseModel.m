@@ -7,32 +7,53 @@
 //
 
 #import "ESBaseModel.h"
+#import "Utilities.h"
 #import <objc/runtime.h>
+#import "Macros.h"
 
 @implementation ESBaseModel
-{
-    NSInteger internalKey;
-}
 
 + (NSString *)createTableSQL
 {
     NSMutableString *sql = [[NSMutableString alloc] init];
-    [sql appendFormat:@"CREATE TABLE IF NOT EXISTS %@ {", [self tableName]];
+    [sql appendFormat:@"CREATE TABLE IF NOT EXISTS %@(", [self tableName]];
     
     unsigned int varCount = 0;
     Ivar *vars = class_copyIvarList(self, &varCount);
     
+    BOOL hasPrimaryKey = NO;
+    
     for(int i = 0; i < varCount; i++) {
         Ivar var = vars[i];
-        const char * varName = ivar_getName(var);
-        const char * varType = ivar_getTypeEncoding(var);
         
+        NSString * varName = [NSString stringWithUTF8String:ivar_getName(var)];
+        const char *varType = ivar_getTypeEncoding(var);
+        
+        NSString *columnName = [self columnNameForIvar:varName];
+        NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
+        
+        if ([varName isEqualToString:[self primaryKey]]) {
+            hasPrimaryKey = YES;
+            if ([dataType isEqualToString:@"INTEGER"]) {
+                [sql appendFormat:@"%@ %@ NOT NULL PRIMARY KEY AUTOINCREMENT,", columnName, dataType];
+            }else {
+                [sql appendFormat:@"%@ %@ NOT NULL PRIMARY KEY,", columnName, dataType];
+            }
+        }else {
+            [sql appendFormat:@"%@ %@,", columnName, dataType];
+        }
     }
+    
+    if (!hasPrimaryKey) {
+        [sql appendFormat:@"defaultKey INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,"];
+    }
+    
+    [sql deleteCharactersInRange:NSMakeRange(sql.length - 1, 1)];
     
     free(vars);
     
     
-    [sql appendString:@"};"];
+    [sql appendString:@");"];
     return sql;
 }
 
@@ -43,21 +64,22 @@
 
 + (NSString *)primaryKey
 {
-    return @"internalKey";
-}
-
-+ (NSString *)modelSign
-{
-    return nil;
+    return @"_defaultKey";
 }
 
 + (NSString *)columnNameForIvar:(NSString *)ivarName
 {
-    if ([ivarName hasPrefix:@"_"]) {
-        return [[self tableName] stringByAppendingString:ivarName];
+    if([ivarName hasPrefix:@"_"]) {
+        return [ivarName substringFromIndex:1];
     }else {
-        return [NSString stringWithFormat:@"%@_%@", [self tableName], ivarName];
+        return ivarName;
     }
+}
+
+// defense
+- (void)setValue:(id)value forUndefinedKey:(NSString *)key
+{
+    DLog(@"value: %@, key: %@", value, key);
 }
 
 @end

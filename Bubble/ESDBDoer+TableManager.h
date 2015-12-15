@@ -11,6 +11,7 @@
 @interface ESDBDoer (TableManager)
 
 // register model class to db.
-- (BOOL)registerDBModel:(Class<ESDBModelProtocol>)modelClass, ...;
+- (BOOL)registerDBModel:(Class)modelClass, ...;
 
+- (BOOL)validateClass:(Class)clz;
 @end

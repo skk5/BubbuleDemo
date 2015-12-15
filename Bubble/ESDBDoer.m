@@ -16,6 +16,7 @@
 
 @implementation ESDBDoer
 
+// if dbfilePath is @":memory:", it is a in-memory database, and will be freed after closed.
 + (instancetype)DBDoerWithFilePath:(NSString *)dbFilePath createIfNotExists:(BOOL)create
 {
     NSAssert([dbFilePath lastPathComponent].length > 0, @"db file path is not correct");

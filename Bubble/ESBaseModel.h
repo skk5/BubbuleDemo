@@ -11,4 +11,6 @@
 
 @interface ESBaseModel : NSObject <ESDBModelProtocol>
 
+@property (nonatomic, assign) NSInteger defaultKey;
+
 @end

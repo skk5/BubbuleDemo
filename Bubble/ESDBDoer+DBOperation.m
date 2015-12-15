@@ -7,13 +7,17 @@
 //
 
 #import "ESDBDoer+DBOperation.h"
+#import "ESDBDoer+TableManager.h"
+#import "ESDBModelProtocol.h"
+#import "Utilities.h"
 #import <objc/runtime.h>
+#import <UIKit/UIKit.h>
 
 @implementation ESDBDoer (DBOperation)
 
 - (BOOL)open
 {
-    int rslt = sqlite3_open_v2(self.filePath.UTF8String, &self->internalDB, 0, NULL);
+    int rslt = sqlite3_open_v2(self.filePath.UTF8String, &internalDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
     if(SQLITE_OK == rslt) {
         return YES;
     }else {
@@ -70,46 +74,237 @@
 #pragma data operation
 - (BOOL)execute:(NSString *)sql
 {
+    if(sqlite3_complete(sql.UTF8String) == 0) {
+        DLog(@"incomplete sql");
+        return NO;
+    }
+    
     int rslt = sqlite3_exec(self->internalDB, sql.UTF8String, NULL, NULL, NULL);
     
     if(rslt == SQLITE_OK) {
-        DLog(@"execute '%@' failed", sql);
+        DLog(@"execute '%@' success", sql);
         return YES;
     }else {
-        DLog(@"execute '%@' success", sql);
+        int errCode = sqlite3_errcode(self->internalDB);
+        DLog(@"execute '%@' failed with errorCode : %d", sql, errCode);
         return NO;
     }
 }
 
-- (NSArray *)queryDBModel:(Class<ESDBModelProtocol>)clz with:(NSDictionary *)conditions
+- (NSArray *)queryDBModel:(Class)clz;
 {
     // TODO:
+    if([self validateClass:clz] == NO) return nil;
     
+    NSMutableArray *models = [[NSMutableArray alloc] init];
     // step 1: gen sql
     unsigned int varsCount = 0;
     Ivar *vars = class_copyIvarList(clz, &varsCount);
-    NSMutableString *sql = [[NSMutableString alloc] init];
-//    [sql appendFormat:@"SELECT * FROM %@", ];
     
+    NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@", [clz tableName]];
     
+    if([self open]) {
+        sqlite3_stmt *st = nil;
+        int rsCode = sqlite3_prepare_v2(self->internalDB, sql.UTF8String, (int)[sql lengthOfBytesUsingEncoding:NSUTF8StringEncoding], &st, NULL);
+        
+        if(rsCode == SQLITE_OK) {
+            NSMutableDictionary *columnNameToIndex = nil;
+            while (sqlite3_step(st) == SQLITE_ROW) {
+                id m = [[clz alloc] init];
+                
+                if(columnNameToIndex == nil) {
+                    columnNameToIndex = [[NSMutableDictionary alloc] init];
+                    int columnCount = sqlite3_column_count(st);
+                    
+                    for(int i = 0; i < columnCount; i++) {
+                        NSString *colName = [NSString stringWithUTF8String:sqlite3_column_name(st, i)];
+                        
+                        if(colName.length > 0) {
+                            [columnNameToIndex setObject:@(i) forKey:colName];
+                        }
+                    }
+                }
+                
+                for(int i = 0; i < varsCount; i++) {
+                    Ivar v = vars[i];
+                    
+                    NSString *varName = [NSString stringWithUTF8String:ivar_getName(v)];
+                    const char *varType = ivar_getTypeEncoding(v);
+                    
+                    NSString *columnName = [clz columnNameForIvar: varName];
+                    NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
+                    
+                    int index = [[columnNameToIndex valueForKey:columnName] intValue];
+                    if([dataType isEqualToString:@"INTEGER"]) {
+                        int val = sqlite3_column_int(st, index);
+                        [m setValue:@(val) forKey:varName];
+                    }else if([dataType isEqualToString:@"FLOAT"]) {
+                        double val = sqlite3_column_double(st, index);
+                        
+                        if(strcasecmp(varType, "@\"NSDate\"") == 0) {
+                            NSDate *date = [NSDate dateWithTimeIntervalSince1970:val];
+                            [m setValue:date forKey:varName];
+                        }else {
+                            [m setValue:@(val) forKey:varName];
+                        }
+                    }else if([dataType isEqualToString:@"TEXT"]) {
+                        const char *val = (const char *)sqlite3_column_text(st, index);
+                        int bytesCount = sqlite3_column_bytes(st, index);
+                        if(strcasecmp(varType, "@\"NSArray\"") == 0 ||
+                           strcasecmp(varType, "@\"NSMutableArray\"") == 0 ||
+                           strcasecmp(varType, "@\"NSDictionary\"") == 0 ||
+                           strcasecmp(varType, "@\"NSMutableDictionary\"") == 0 ) {
+                            id obj = [NSJSONSerialization JSONObjectWithData:[NSData dataWithBytes:val length:bytesCount] options:NSJSONReadingMutableContainers error:NULL];
+                            
+                            [m setValue:obj forKey:varName];
+                        }else {
+                            NSString *str = [NSString stringWithUTF8String:val];
+                            [m setValue:str forKey:varName];
+                        }
+                    }else if([dataType isEqualToString:@"BLOB"]) {
+                        const void * val = sqlite3_column_blob(st, index);
+                        int bytesCount = sqlite3_column_bytes(st, index);
+                        
+                        if(strcasecmp(varType, "@\"NSData\"") == 0) {
+                            NSData *data = [NSData dataWithBytes:val length:bytesCount];
+                            
+                            [m setValue:data forKey:varName];
+                        }else if(strcasecmp(varType, "@\"UIImage\"") == 0) {
+                            UIImage *image = [UIImage imageWithData:[NSData dataWithBytes:val length:bytesCount]];
+                            
+                            [m setValue:image forKey:varName];
+                        }
+                    }else if([dataType isEqualToString:@"NULL"]) {
+                        // TODO:
+                    }
+                    
+                    
+                    
+                }
+                
+                [models addObject:m];
+            }
+            
+            sqlite3_finalize(st);
+        }else {
+            DLog(@"Compile sql failed");
+        }
+        
+        
+        [self close];
+    }
+
     
+    free(vars);
     
-    // step 2: fetch data
-    // step 3: convert to model
-    
-    
-    return nil;
+    return models;
 }
 
-- (BOOL)saveDBModel:(id<ESDBModelProtocol>)model
+- (BOOL)saveDBModel:(id)model
 {
-    // TODO:
+    NSMutableString *sql = [[NSMutableString alloc] init];
+    [sql appendFormat:@"REPLACE INTO %@(", [[model class] tableName]];
+    
+    unsigned int varsCount = 0;
+    Ivar *vars = class_copyIvarList([model class], &varsCount);
+    for(int i = 0; i < varsCount; i++) {
+        Ivar v = vars[i];
+        
+        NSString *varName = [NSString stringWithUTF8String:ivar_getName(v)];
+        
+        [sql appendFormat:@"%@, ", [[model class] columnNameForIvar: varName]];
+    }
+    
+    [sql deleteCharactersInRange:NSMakeRange(sql.length - 2, 2)];
+    [sql appendString:@") VALUES("];
+    
+    for(int i = 0; i < varsCount; i++) {
+        [sql appendString:@"?, "];
+    }
+    [sql deleteCharactersInRange:NSMakeRange(sql.length - 2, 2)];
+    [sql appendString:@");"];
+    
+    DLog(@"%@", sql);
+    
+    if ([self open]) {
+        sqlite3_stmt *stmt = nil;
+        
+        // compile sql
+        int rsCode = sqlite3_prepare_v2(self->internalDB, sql.UTF8String, (int)[sql lengthOfBytesUsingEncoding:NSUTF8StringEncoding], &stmt, NULL);
+        if(rsCode == SQLITE_OK) {
+            // bind value
+            for(int i = 0; i < varsCount; i++) {
+                Ivar v = vars[i];
+                NSString *varName = [NSString stringWithUTF8String:ivar_getName(v)];
+                const char *varType = ivar_getTypeEncoding(v);
+                
+                NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
+                
+                if([dataType isEqualToString:@"INTEGER"]) {
+                    sqlite3_bind_int(stmt, i + 1, [[model valueForKey:varName] intValue]);
+                }else if([dataType isEqualToString:@"FLOAT"]) {
+                    if(strcasecmp(varType, "@\"NSDate\"") == 0) {
+                        NSDate *date = (NSDate *)[model valueForKey:varName];
+                        NSTimeInterval interval = [date timeIntervalSince1970];
+                        
+                        sqlite3_bind_double(stmt, i + 1, interval);
+                    }else {
+                        sqlite3_bind_double(stmt, i + 1, [[model valueForKey:varName] doubleValue]);
+                    }
+                }else if([dataType isEqualToString:@"TEXT"]) {
+                    if(strcasecmp(varType, "@\"NSArray\"") == 0 ||
+                       strcasecmp(varType, "@\"NSMutableArray\"") == 0 ||
+                       strcasecmp(varType, "@\"NSDictionary\"") == 0 ||
+                       strcasecmp(varType, "@\"NSMutableDictionary\"") == 0 ) {
+                        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:[model valueForKey:varName] options:NSJSONWritingPrettyPrinted error:NULL];
+                        NSString *str = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                        
+                        sqlite3_bind_text(stmt, i + 1, str.UTF8String, (int)[str lengthOfBytesUsingEncoding:NSUTF8StringEncoding], NULL);
+                    }else {
+                        NSString *str = [model valueForKey:varName];
+                        
+                        sqlite3_bind_text(stmt, i + 1, str.UTF8String, (int)[str lengthOfBytesUsingEncoding:NSUTF8StringEncoding], NULL);
+                    }
+                }else if([dataType isEqualToString:@"BLOB"]) {
+                    if(strcasecmp(varType, "@\"NSData\"") == 0) {
+                        NSData *data = (NSData *)[model valueForKey:varName];
+                        sqlite3_bind_blob(stmt, i + 1, data.bytes, (int)data.length, NULL);
+                    }else if(strcasecmp(varType, "@\"UIImage\"") == 0) {
+                        UIImage *image = (UIImage *)[model valueForKey:varName];
+                        NSData *data = UIImageJPEGRepresentation(image, 1.0f);
+                        sqlite3_bind_blob(stmt, i + 1, data.bytes, (int)data.length, NULL);
+                    }
+                }else if([dataType isEqualToString:@"NULL"]) {
+                    // TODO:
+                }
+            }
+            
+            if(sqlite3_step(stmt) == SQLITE_DONE) {
+                DLog(@"save success");
+            }else {
+                DLog(@"failed to save");
+            }
+            
+            sqlite3_finalize(stmt);
+        }else {
+            DLog(@"can't compile sql");
+        }
+        
+        [self close];
+    }
+    
+    free(vars);
+    
     return NO;
 }
 
 - (BOOL)deleteDBModel:(id<ESDBModelProtocol>)model
 {
     // TODO:
+    NSString *primaryKey = [[model class] primaryKey];
+    
+    
+    
     return NO;
 }
 

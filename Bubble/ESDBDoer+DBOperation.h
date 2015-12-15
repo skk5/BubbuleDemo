@@ -8,6 +8,8 @@
 
 #import "ESDBDoer.h"
 
+@protocol ESDBModelProtocol;
+
 @interface ESDBDoer (DBOperation)
 
 // * basic operation
@@ -28,10 +30,10 @@
 //
 //- (BOOL)executeQuery:(NSString *)sql withProcess:(void(^)(sqlite3_stmt *stmt, int rsltCode))outputBlock;
 
-- (NSArray *)queryDBModel:(Class<ESDBModelProtocol>)clz with:(NSDictionary *)conditions;
+- (NSArray *)queryDBModel:(Class)clz;
 
-- (BOOL)saveDBModel:(id<ESDBModelProtocol>)model;
+- (BOOL)saveDBModel:(id)model;
 
-- (BOOL)deleteDBModel:(id<ESDBModelProtocol>)model;
+- (BOOL)deleteDBModel:(id)model;
 
 @end

@@ -8,7 +8,21 @@
 
 #import "ViewController.h"
 #import "../Bubble/Macros.h"
-#import "../Bubble/ESDBDoer+DBOperation.h"
+#import "../Bubble/ESDBDoer.h"
+#import "ESDBDoer+DBOperation.h"
+#import "ESDBDoer+TableManager.h"
+#import "ESBaseModel.h"
+
+@interface TestModel: ESBaseModel
+
+@property (nonatomic, assign) NSInteger age;
+@property (nonatomic, copy)   NSString *name;
+
+@end
+
+@implementation TestModel
+
+@end
 
 @interface ViewController ()
 
@@ -19,8 +33,25 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    ESDBDoer *doer = [ESDBDoer DBDoerWithFilePath:@"" createIfNotExists:YES];
-    [doer queryDBModel:[ESDBDoer class] with:nil];
+    ESDBDoer *doer = [ESDBDoer DBDoerWithFilePath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"test.db"] createIfNotExists:YES];
+    
+    [doer registerDBModel:[TestModel class], nil];
+    
+    TestModel *tm = [[TestModel alloc] init];
+    
+    tm.age = 11;
+    tm.name = @"Tom";
+    [doer saveDBModel:tm];
+    
+    time_t beginTime;
+    time(&beginTime);
+    NSArray *allTestModel = [doer queryDBModel:[TestModel class]];
+    time_t endTime;
+    time(&endTime);
+    
+    printf("%ld\n", endTime - beginTime);
+    
+    NSLog(@"allTestModel: %@", allTestModel);
     // Do any additional setup after loading the view, typically from a nib.
 }
 

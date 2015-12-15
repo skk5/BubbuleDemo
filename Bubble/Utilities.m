@@ -8,6 +8,18 @@
 
 #import "Utilities.h"
 
+static const int integerCount = 11;
+static const char * integerTypes[integerCount] = {"c", "i", "s", "l", "q", "C", "I", "S", "L", "Q", "B"};
+
+static const int floatCount = 5;
+static const char * floatTypes[floatCount] = {"f", "d", "@\"NSDate\"", "@\"NSNumber\"", "@\"NSValue\""};
+
+static const int textCount = 7;
+static const char * textTypes[textCount] = {"*", "@\"NSString\"", "@\"NSMutableString\"", "@\"NSArray\"", "@\"NSMutableArray\"", "@\"NSDictionary\"", "@\"NSMutableDictionary\""};
+
+static const int blobCount = 2;
+static const char * blobTypes[blobCount] = {"@\"UIImage\"", "@\"NSData\""};
+
 @implementation Utilities
 
 + (NSString *)sqlite3DataTypeOfTypeEncoding:(const char *)te
@@ -44,9 +56,38 @@
      * ^type           A pointer to type
      * ?               An unknown type (among other things, this code is used for function pointers)
      */
-    static const char * integerTypes[] = {"c", "i", "s", "l", "q", "C", "I", "S", "L", "Q", "B"};
-    static const char * floatTypes[] = {"f", "d"};
     
+    if (strcasecmp(te, "NSNull") == 0) {
+        return @"NULL";
+    }
+    
+    //integer
+    for(int i = 0; i < integerCount; i++) {
+        if(strcasecmp(te, integerTypes[i]) == 0) {
+            return @"INTEGER";
+        }
+    }
+    
+    //float
+    for(int i = 0; i < floatCount; i++) {
+        if(strcasecmp(te, floatTypes[i]) == 0) {
+            return @"FLOAT";
+        }
+    }
+    
+    //text
+    for(int i = 0; i < textCount; i++) {
+        if(strcasecmp(te, textTypes[i]) == 0) {
+            return @"TEXT";
+        }
+    }
+    
+    //blob
+    for(int i = 0; i < blobCount; i++) {
+        if(strcasecmp(te, blobTypes[i]) == 0) {
+            return @"BLOB";
+        }
+    }
     
     
     return nil;

@@ -23,7 +23,4 @@
 // primary key.
 + (NSString *)primaryKey;
 
-// sign for table of model.
-+ (NSString *)modelSign;
-
 @end
