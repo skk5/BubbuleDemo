@@ -6,7 +6,9 @@
 //  Copyright © 2015年 Ewing. All rights reserved.
 //
 
+
 #import "Utilities.h"
+#import <objc/objc.h>
 
 static const int integerCount = 11;
 static const char * integerTypes[integerCount] = {"c", "i", "s", "l", "q", "C", "I", "S", "L", "Q", "B"};
@@ -93,4 +95,32 @@ static const char * blobTypes[blobCount] = {"@\"UIImage\"", "@\"NSData\""};
     return nil;
 }
 
+
++ (Ivar *)copyIvarListOfClass:(Class)cls outCount:(unsigned int *)count
+{
+    Ivar *result = NULL;
+    int offset = 0;
+    
+    while (cls != [NSObject class]) {
+        unsigned int varCount = 0;
+        Ivar *vars = class_copyIvarList(cls, &varCount);
+
+        if(varCount > 0) {
+            result = realloc(result, sizeof(Ivar) * (varCount + offset));
+            assert(result != NULL);
+            
+            memcpy(result + offset, vars, sizeof(Ivar) * varCount);
+            
+            offset += varCount;
+        }
+        
+        free(vars);
+        
+        cls = [cls superclass];
+    }
+    
+    *count = offset;
+    
+    return result;
+}
 @end

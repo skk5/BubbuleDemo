@@ -8,7 +8,6 @@
 
 #import "ESBaseModel.h"
 #import "Utilities.h"
-#import <objc/runtime.h>
 #import "Macros.h"
 
 @implementation ESBaseModel
@@ -19,7 +18,7 @@
     [sql appendFormat:@"CREATE TABLE IF NOT EXISTS %@(", [self tableName]];
     
     unsigned int varCount = 0;
-    Ivar *vars = class_copyIvarList(self, &varCount);
+    Ivar *vars = [Utilities copyIvarListOfClass:self outCount:&varCount];
     
     BOOL hasPrimaryKey = NO;
     

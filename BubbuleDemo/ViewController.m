@@ -22,9 +22,17 @@
 
 @implementation TestModel
 
+- (NSString *)description
+{
+    return [NSString stringWithFormat:@"%ld\t%@: %ld\n", (long)self.defaultKey, _name, _age];
+}
+
 @end
 
 @interface ViewController ()
+{
+    ESDBDoer *doer;
+}
 
 @end
 
@@ -33,7 +41,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    ESDBDoer *doer = [ESDBDoer DBDoerWithFilePath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"test.db"] createIfNotExists:YES];
+    doer = [ESDBDoer DBDoerWithFilePath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"test.db"] createIfNotExists:YES];
     
     [doer registerDBModel:[TestModel class], nil];
     
@@ -43,16 +51,24 @@
     tm.name = @"Tom";
     [doer saveDBModel:tm];
     
-    time_t beginTime;
-    time(&beginTime);
+
+
     NSArray *allTestModel = [doer queryDBModel:[TestModel class]];
-    time_t endTime;
-    time(&endTime);
-    
-    printf("%ld\n", endTime - beginTime);
-    
     NSLog(@"allTestModel: %@", allTestModel);
-    // Do any additional setup after loading the view, typically from a nib.
+
+    
+    for(TestModel *m in allTestModel) {
+        [doer deleteDBModel:m];
+    }
+}
+
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
+{
+    TestModel *tm = [[TestModel alloc] init];
+    
+    tm.age = arc4random() % 40;
+    tm.name = @"Tom";
+    [doer saveDBModel:tm];
 }
 
 - (void)didReceiveMemoryWarning {

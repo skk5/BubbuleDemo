@@ -31,6 +31,8 @@
         }
     }
     
+    free(methodDescriptions);
+    
     return YES;
 }
 

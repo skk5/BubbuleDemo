@@ -64,6 +64,7 @@
 {
     int rslt = sqlite3_close_v2(self->internalDB);
     if(SQLITE_OK == rslt) {
+        DLog(@"%@", @"Database Closed!");
         return YES;
     }else {
         DLog(@"failed to begin transaction with errorcode = %d", rslt);
@@ -99,7 +100,7 @@
     NSMutableArray *models = [[NSMutableArray alloc] init];
     // step 1: gen sql
     unsigned int varsCount = 0;
-    Ivar *vars = class_copyIvarList(clz, &varsCount);
+    Ivar *vars = [Utilities copyIvarListOfClass:clz outCount:&varsCount];
     
     NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@", [clz tableName]];
     
@@ -206,7 +207,7 @@
     [sql appendFormat:@"REPLACE INTO %@(", [[model class] tableName]];
     
     unsigned int varsCount = 0;
-    Ivar *vars = class_copyIvarList([model class], &varsCount);
+    Ivar *vars = [Utilities copyIvarListOfClass:[model class] outCount:&varsCount];
     for(int i = 0; i < varsCount; i++) {
         Ivar v = vars[i];
         
@@ -298,14 +299,36 @@
     return NO;
 }
 
-- (BOOL)deleteDBModel:(id<ESDBModelProtocol>)model
+- (BOOL)deleteDBModel:(id)model
 {
     // TODO:
     NSString *primaryKey = [[model class] primaryKey];
     
+    NSString *columnName = [[model class] columnNameForIvar:primaryKey];
+    Ivar var = class_getInstanceVariable([model class], primaryKey.UTF8String);
+    const char *varType = ivar_getTypeEncoding(var);
+    NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
     
     
-    return NO;
+    NSString *sql = nil;
+    
+    if([dataType isEqualToString:@"TEXT"] || [dataType isEqualToString:@"BLOB"]) {
+        sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@='%@';", [[model class] tableName], columnName, [model valueForKey:primaryKey]];
+    }else if([dataType isEqualToString:@"INTEGER"]) {
+        sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@=%ld;", [[model class] tableName], columnName, (long)[[model valueForKey:primaryKey] integerValue]];
+    }else if([dataType isEqualToString:@"FLOAT"]) {
+        sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@=%f;", [[model class] tableName], columnName, [[model valueForKey:primaryKey] doubleValue]];
+    }
+    
+    BOOL rslt = NO;
+    
+    if([self open] ) {
+        rslt = [self execute:sql];
+        
+        [self close];
+    }
+    
+    return rslt;
 }
 
 @end
