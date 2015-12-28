@@ -92,6 +92,15 @@
     }
 }
 
+- (NSArray *)queryDBModel:(Class)clz statement:(NSString *)sql
+{
+    if ([self validateClass:clz] == NO) {
+        return nil;
+    }
+    
+    return nil;
+}
+
 - (NSArray *)queryDBModel:(Class)clz;
 {
     // TODO:

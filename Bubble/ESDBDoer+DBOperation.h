@@ -25,10 +25,8 @@
 
 // * data operation
 - (BOOL)execute:(NSString *)sql;
-//
-//- (BOOL)executeSave:(NSString *)sql withProcess:(BOOL(^)(sqlite3_stmt *stmt, int rsltCode))inputBlock;
-//
-//- (BOOL)executeQuery:(NSString *)sql withProcess:(void(^)(sqlite3_stmt *stmt, int rsltCode))outputBlock;
+
+- (NSArray *)queryDBModel:(Class)clz statement:(NSString *)sql;
 
 - (NSArray *)queryDBModel:(Class)clz;
 
