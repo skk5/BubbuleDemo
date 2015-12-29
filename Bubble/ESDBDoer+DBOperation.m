@@ -9,6 +9,7 @@
 #import "ESDBDoer+DBOperation.h"
 #import "ESDBDoer+TableManager.h"
 #import "ESDBModelProtocol.h"
+#import "ESBaseModel.h"
 #import "Utilities.h"
 #import <objc/runtime.h>
 #import <UIKit/UIKit.h>
@@ -72,7 +73,57 @@
     }
 }
 
-#pragma data operation
+#pragma mark - private method
+- (NSString *)columnNameForIvar:(NSString *)varName inModel:(Class)modelCls
+{
+    if (varName.length == 0) return nil;
+    
+    if (self->cacheModelInfo == nil) {
+        self->cacheModelInfo = [[NSMutableDictionary alloc] init];
+        
+        NSString *columnName = [modelCls columnNameForIvar:varName];
+        if(columnName.length > 0) {
+            NSMutableDictionary *modelDic = [[NSMutableDictionary alloc] init];
+            [modelDic setObject:columnName forKey:varName];
+            
+            [self->cacheModelInfo setObject:modelDic forKey:NSStringFromClass(modelCls)];
+            
+            return columnName;
+        }
+    }else {
+        NSMutableDictionary *modelDic = [self->cacheModelInfo objectForKey:NSStringFromClass(modelCls)];
+        
+        if(modelDic != nil) {
+            NSString *columnName = [modelDic objectForKey:varName];
+            
+            if(columnName == nil) {
+                columnName = [modelCls columnNameForIvar:varName];
+                
+                if(columnName.length > 0) {
+                    [modelDic setObject:columnName forKey:varName];
+                }
+            }
+            
+            return columnName;
+        }else {
+            modelDic = [[NSMutableDictionary alloc] init];
+            
+            NSString *columnName = [modelCls columnNameForIvar:varName];
+            
+            if(columnName.length > 0) {
+                [modelDic setObject:columnName forKey:varName];
+                
+                [self->cacheModelInfo setObject:modelDic forKey:NSStringFromClass(modelCls)];
+            }
+            
+            return columnName;
+        }
+    }
+    
+    return nil;
+}
+
+#pragma mark - data operation
 - (BOOL)execute:(NSString *)sql
 {
     if(sqlite3_complete(sql.UTF8String) == 0) {
@@ -98,27 +149,18 @@
         return nil;
     }
     
-    return nil;
-}
-
-- (NSArray *)queryDBModel:(Class)clz;
-{
-    // TODO:
-    if([self validateClass:clz] == NO) return nil;
-    
-    NSMutableArray *models = [[NSMutableArray alloc] init];
-    // step 1: gen sql
-    unsigned int varsCount = 0;
-    Ivar *vars = [Utilities copyIvarListOfClass:clz outCount:&varsCount];
-    
-    NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@", [clz tableName]];
-    
-    if([self open]) {
-        sqlite3_stmt *st = nil;
+    if ([self open]) {
+        
+        sqlite3_stmt *st = NULL;
         int rsCode = sqlite3_prepare_v2(self->internalDB, sql.UTF8String, (int)[sql lengthOfBytesUsingEncoding:NSUTF8StringEncoding], &st, NULL);
         
         if(rsCode == SQLITE_OK) {
+            NSMutableArray *models = [[NSMutableArray alloc] init];
             NSMutableDictionary *columnNameToIndex = nil;
+            
+            unsigned int varsCount = 0;
+            Ivar *vars = [Utilities copyIvarListOfClass:clz outCount:&varsCount];
+            
             while (sqlite3_step(st) == SQLITE_ROW) {
                 id m = [[clz alloc] init];
                 
@@ -144,7 +186,11 @@
                     NSString *columnName = [clz columnNameForIvar: varName];
                     NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
                     
-                    int index = [[columnNameToIndex valueForKey:columnName] intValue];
+                    //跳过没有查询的变量
+                    NSNumber *indexNumber = [columnNameToIndex objectForKey:columnName];
+                    if(indexNumber == nil) continue;
+                    
+                    int index = [indexNumber intValue];
                     if([dataType isEqualToString:@"INTEGER"]) {
                         int val = sqlite3_column_int(st, index);
                         [m setValue:@(val) forKey:varName];
@@ -187,33 +233,49 @@
                     }else if([dataType isEqualToString:@"NULL"]) {
                         // TODO:
                     }
-                    
-                    
-                    
                 }
                 
                 [models addObject:m];
             }
             
+            
+            free(vars);
+            
             sqlite3_finalize(st);
-        }else {
-            DLog(@"Compile sql failed");
+            
+            [self close];
+            
+            return models;
         }
-        
         
         [self close];
     }
-
     
-    free(vars);
-    
-    return models;
+    return nil;
 }
 
-- (BOOL)saveDBModel:(id)model
+- (NSArray *)queryDBModel:(Class)clz;
+{
+    // TODO:
+    if([self validateClass:clz] == NO) {
+        return nil;
+    }
+    
+    NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@", [clz tableName]];
+    
+    return [self queryDBModel:clz statement:sql];
+}
+
+- (BOOL)saveDBModel:(id)model isInsertion:(BOOL)insert
 {
     NSMutableString *sql = [[NSMutableString alloc] init];
-    [sql appendFormat:@"REPLACE INTO %@(", [[model class] tableName]];
+    [sql appendFormat:@"%@ INTO %@(", (insert ? @"INSERT" : @"REPLACE"),[[model class] tableName]];
+    
+    BOOL needPrimaryKey = YES;
+    
+    if([[[model class] primaryKey] isEqualToString:[[ESBaseModel class] primaryKey]]) {
+        needPrimaryKey = NO;
+    }
     
     unsigned int varsCount = 0;
     Ivar *vars = [Utilities copyIvarListOfClass:[model class] outCount:&varsCount];
@@ -222,13 +284,17 @@
         
         NSString *varName = [NSString stringWithUTF8String:ivar_getName(v)];
         
+        if(!needPrimaryKey && [varName isEqualToString:[[model class] primaryKey]]) {
+            continue;
+        }
+        
         [sql appendFormat:@"%@, ", [[model class] columnNameForIvar: varName]];
     }
     
     [sql deleteCharactersInRange:NSMakeRange(sql.length - 2, 2)];
     [sql appendString:@") VALUES("];
     
-    for(int i = 0; i < varsCount; i++) {
+    for(int i = (needPrimaryKey ? 0 : 1); i < varsCount; i++) {
         [sql appendString:@"?, "];
     }
     [sql deleteCharactersInRange:NSMakeRange(sql.length - 2, 2)];
@@ -306,6 +372,16 @@
     free(vars);
     
     return NO;
+}
+
+- (BOOL)insertDBModel:(id)model
+{
+    return [self saveDBModel:model isInsertion:YES];
+}
+
+- (BOOL)saveDBModel:(id)model
+{
+    return [self saveDBModel:model isInsertion:NO];
 }
 
 - (BOOL)deleteDBModel:(id)model

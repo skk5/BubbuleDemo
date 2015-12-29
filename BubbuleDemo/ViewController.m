@@ -57,9 +57,9 @@
     NSLog(@"allTestModel: %@", allTestModel);
 
     
-    for(TestModel *m in allTestModel) {
-        [doer deleteDBModel:m];
-    }
+//    for(TestModel *m in allTestModel) {
+//        [doer deleteDBModel:m];
+//    }
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
@@ -68,7 +68,7 @@
     
     tm.age = arc4random() % 40;
     tm.name = @"Tom";
-    [doer saveDBModel:tm];
+    [doer insertDBModel:tm];
 }
 
 - (void)didReceiveMemoryWarning {

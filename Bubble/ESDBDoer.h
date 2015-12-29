@@ -17,6 +17,8 @@
 {
     @private
     sqlite3 *internalDB;
+    
+    NSMutableDictionary *cacheModelInfo;
 }
 
 + (instancetype)DBDoerWithFilePath:(NSString *)dbFilePath createIfNotExists:(BOOL)create;

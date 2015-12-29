@@ -30,6 +30,8 @@
 
 - (NSArray *)queryDBModel:(Class)clz;
 
+- (BOOL)insertDBModel:(id)model;
+
 - (BOOL)saveDBModel:(id)model;
 
 - (BOOL)deleteDBModel:(id)model;
