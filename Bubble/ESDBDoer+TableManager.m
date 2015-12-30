@@ -93,12 +93,12 @@
     if(sm == nil) {
         return [cls createTableSQL];
     }else {
-        NSString *oldCreateSql = sm.sql;
+        NSString *oldCreateSql = [sm.sql stringByAppendingString:@";"];
         NSString *newCreateSql = [cls createTableSQL];
         
         NSMutableString *resultSql = [NSMutableString string];
         
-        // 已经存在而且没有改动，则无需任何操作.
+        
         if ([oldCreateSql isEqualToString:newCreateSql]) {
             return nil;
         }

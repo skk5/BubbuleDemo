@@ -187,7 +187,7 @@
                     NSString *columnName = [clz columnNameForIvar: varName];
                     NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
                     
-                    //跳过没有查询的变量
+                    // 
                     NSNumber *indexNumber = [columnNameToIndex objectForKey:columnName];
                     if(indexNumber == nil) continue;
                     
