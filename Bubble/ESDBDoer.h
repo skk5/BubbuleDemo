@@ -11,7 +11,6 @@
 #import "Macros.h"
 
 @class ESBaseModel;
-@protocol ESDBModelProtocol;
 
 @interface ESDBDoer : NSObject
 {
@@ -25,5 +24,7 @@
 
 @property (nonatomic, assign) BOOL enableLog;
 @property (nonatomic, copy, readonly) NSString *filePath;
+
+@property (nonatomic, assign) BOOL useTransaction;
 
 @end

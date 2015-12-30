@@ -7,11 +7,7 @@
 //
 
 #import "ViewController.h"
-#import "../Bubble/Macros.h"
-#import "../Bubble/ESDBDoer.h"
-#import "ESDBDoer+DBOperation.h"
-#import "ESDBDoer+TableManager.h"
-#import "ESBaseModel.h"
+#import "Bubble.h"
 
 @interface TestModel: ESBaseModel
 
@@ -29,6 +25,19 @@
 
 @end
 
+@interface TestModel2 : ESBaseModel
+
+@property (nonatomic, copy) NSString *name;
+@property (nonatomic, copy) NSString *hobby;
+@property (nonatomic, copy) NSString *familyName;
+@property (nonatomic, assign) int    weight;
+
+@end
+
+@implementation TestModel2
+
+@end
+
 @interface ViewController ()
 {
     ESDBDoer *doer;
@@ -43,23 +52,24 @@
 
     doer = [ESDBDoer DBDoerWithFilePath:[NSTemporaryDirectory() stringByAppendingPathComponent:@"test.db"] createIfNotExists:YES];
     
-    [doer registerDBModel:[TestModel class], nil];
+    NSLog(@"db file path : %@", doer.filePath);
+    
+    [doer registerDBModel:[TestModel class], [TestModel2 class], nil];
     
     TestModel *tm = [[TestModel alloc] init];
     
     tm.age = 11;
     tm.name = @"Tom";
-    [doer saveDBModel:tm];
+    [doer saveDBModels:@[tm]];
     
-
+    TestModel2 *t2 = [[TestModel2 alloc] init];
+    t2.name = @"t-2";
+    t2.hobby = @"basketball";
+    [doer saveDBModels:@[t2]];
+    
 
     NSArray *allTestModel = [doer queryDBModel:[TestModel class]];
     NSLog(@"allTestModel: %@", allTestModel);
-
-    
-//    for(TestModel *m in allTestModel) {
-//        [doer deleteDBModel:m];
-//    }
 }
 
 - (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event
@@ -68,7 +78,7 @@
     
     tm.age = arc4random() % 40;
     tm.name = @"Tom";
-    [doer insertDBModel:tm];
+    [doer insertDBModels:@[tm]];
 }
 
 - (void)didReceiveMemoryWarning {

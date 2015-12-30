@@ -20,6 +20,7 @@
 {
     int rslt = sqlite3_open_v2(self.filePath.UTF8String, &internalDB, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
     if(SQLITE_OK == rslt) {
+        DLog(@"open db!");
         return YES;
     }else {
         DLog(@"failed to open db with errorcode = %d", rslt);
@@ -68,7 +69,7 @@
         DLog(@"%@", @"Database Closed!");
         return YES;
     }else {
-        DLog(@"failed to begin transaction with errorcode = %d", rslt);
+        DLog(@"failed to close with errorcode = %d", rslt);
         return NO;
     }
 }
@@ -225,10 +226,6 @@
                             NSData *data = [NSData dataWithBytes:val length:bytesCount];
                             
                             [m setValue:data forKey:varName];
-                        }else if(strcasecmp(varType, "@\"UIImage\"") == 0) {
-                            UIImage *image = [UIImage imageWithData:[NSData dataWithBytes:val length:bytesCount]];
-                            
-                            [m setValue:image forKey:varName];
                         }
                     }else if([dataType isEqualToString:@"NULL"]) {
                         // TODO:
@@ -266,29 +263,31 @@
     return [self queryDBModel:clz statement:sql];
 }
 
-- (BOOL)saveDBModel:(id)model isInsertion:(BOOL)insert
+- (NSInteger)saveDBModels:(NSArray *)models isInsertion:(BOOL)insert
 {
+    if(models.count == 0) return 0;
+    
     NSMutableString *sql = [[NSMutableString alloc] init];
-    [sql appendFormat:@"%@ INTO %@(", (insert ? @"INSERT" : @"REPLACE"),[[model class] tableName]];
+    [sql appendFormat:@"%@ INTO %@(", (insert ? @"INSERT" : @"REPLACE"),[[models.firstObject class] tableName]];
     
     BOOL needPrimaryKey = YES;
     
-    if([[[model class] primaryKey] isEqualToString:[[ESBaseModel class] primaryKey]]) {
+    if([[[models.firstObject class] primaryKey] isEqualToString:[[ESBaseModel class] primaryKey]]) {
         needPrimaryKey = NO;
     }
     
     unsigned int varsCount = 0;
-    Ivar *vars = [Utilities copyIvarListOfClass:[model class] outCount:&varsCount];
+    Ivar *vars = [Utilities copyIvarListOfClass:[models.firstObject class] outCount:&varsCount];
     for(int i = 0; i < varsCount; i++) {
         Ivar v = vars[i];
         
         NSString *varName = [NSString stringWithUTF8String:ivar_getName(v)];
         
-        if(!needPrimaryKey && [varName isEqualToString:[[model class] primaryKey]]) {
+        if(!needPrimaryKey && [varName isEqualToString:[[models.firstObject class] primaryKey]]) {
             continue;
         }
         
-        [sql appendFormat:@"%@, ", [[model class] columnNameForIvar: varName]];
+        [sql appendFormat:@"%@, ", [[models.firstObject class] columnNameForIvar: varName]];
     }
     
     [sql deleteCharactersInRange:NSMakeRange(sql.length - 2, 2)];
@@ -302,68 +301,87 @@
     
     DLog(@"%@", sql);
     
+    
+    NSInteger rslt = 0;
     if ([self open]) {
+        
+        if(self.useTransaction) {
+            [self beginTransaction];
+        }
+        
         sqlite3_stmt *stmt = nil;
         
         // compile sql
         int rsCode = sqlite3_prepare_v2(self->internalDB, sql.UTF8String, (int)[sql lengthOfBytesUsingEncoding:NSUTF8StringEncoding], &stmt, NULL);
         if(rsCode == SQLITE_OK) {
-            // bind value
-            for(int i = 0; i < varsCount; i++) {
-                Ivar v = vars[i];
-                NSString *varName = [NSString stringWithUTF8String:ivar_getName(v)];
-                const char *varType = ivar_getTypeEncoding(v);
-                
-                NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
-                
-                if([dataType isEqualToString:@"INTEGER"]) {
-                    sqlite3_bind_int(stmt, i + 1, [[model valueForKey:varName] intValue]);
-                }else if([dataType isEqualToString:@"FLOAT"]) {
-                    if(strcasecmp(varType, "@\"NSDate\"") == 0) {
-                        NSDate *date = (NSDate *)[model valueForKey:varName];
-                        NSTimeInterval interval = [date timeIntervalSince1970];
-                        
-                        sqlite3_bind_double(stmt, i + 1, interval);
-                    }else {
-                        sqlite3_bind_double(stmt, i + 1, [[model valueForKey:varName] doubleValue]);
+            for(id model in models) {
+                // bind value
+                for(int i = 0; i < varsCount; i++) {
+                    Ivar v = vars[i];
+                    NSString *varName = [NSString stringWithUTF8String:ivar_getName(v)];
+                    const char *varType = ivar_getTypeEncoding(v);
+                    
+                    NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
+                    
+                    if([dataType isEqualToString:@"INTEGER"]) {
+                        sqlite3_bind_int(stmt, i + 1, [[model valueForKey:varName] intValue]);
+                    }else if([dataType isEqualToString:@"FLOAT"]) {
+                        if(strcasecmp(varType, "@\"NSDate\"") == 0) {
+                            NSDate *date = (NSDate *)[model valueForKey:varName];
+                            NSTimeInterval interval = [date timeIntervalSince1970];
+                            
+                            sqlite3_bind_double(stmt, i + 1, interval);
+                        }else {
+                            sqlite3_bind_double(stmt, i + 1, [[model valueForKey:varName] doubleValue]);
+                        }
+                    }else if([dataType isEqualToString:@"TEXT"]) {
+                        if(strcasecmp(varType, "@\"NSArray\"") == 0 ||
+                           strcasecmp(varType, "@\"NSMutableArray\"") == 0 ||
+                           strcasecmp(varType, "@\"NSDictionary\"") == 0 ||
+                           strcasecmp(varType, "@\"NSMutableDictionary\"") == 0 ) {
+                            NSData *jsonData = [NSJSONSerialization dataWithJSONObject:[model valueForKey:varName] options:NSJSONWritingPrettyPrinted error:NULL];
+                            NSString *str = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
+                            
+                            sqlite3_bind_text(stmt, i + 1, str.UTF8String, (int)[str lengthOfBytesUsingEncoding:NSUTF8StringEncoding], NULL);
+                        }else {
+                            NSString *str = [model valueForKey:varName];
+                            
+                            sqlite3_bind_text(stmt, i + 1, str.UTF8String, (int)[str lengthOfBytesUsingEncoding:NSUTF8StringEncoding], NULL);
+                        }
+                    }else if([dataType isEqualToString:@"BLOB"]) {
+                        if(strcasecmp(varType, "@\"NSData\"") == 0) {
+                            NSData *data = (NSData *)[model valueForKey:varName];
+                            sqlite3_bind_blob(stmt, i + 1, data.bytes, (int)data.length, NULL);
+                        }
+                    }else if([dataType isEqualToString:@"NULL"]) {
+                        // TODO:
                     }
-                }else if([dataType isEqualToString:@"TEXT"]) {
-                    if(strcasecmp(varType, "@\"NSArray\"") == 0 ||
-                       strcasecmp(varType, "@\"NSMutableArray\"") == 0 ||
-                       strcasecmp(varType, "@\"NSDictionary\"") == 0 ||
-                       strcasecmp(varType, "@\"NSMutableDictionary\"") == 0 ) {
-                        NSData *jsonData = [NSJSONSerialization dataWithJSONObject:[model valueForKey:varName] options:NSJSONWritingPrettyPrinted error:NULL];
-                        NSString *str = [[NSString alloc] initWithData:jsonData encoding:NSUTF8StringEncoding];
-                        
-                        sqlite3_bind_text(stmt, i + 1, str.UTF8String, (int)[str lengthOfBytesUsingEncoding:NSUTF8StringEncoding], NULL);
-                    }else {
-                        NSString *str = [model valueForKey:varName];
-                        
-                        sqlite3_bind_text(stmt, i + 1, str.UTF8String, (int)[str lengthOfBytesUsingEncoding:NSUTF8StringEncoding], NULL);
-                    }
-                }else if([dataType isEqualToString:@"BLOB"]) {
-                    if(strcasecmp(varType, "@\"NSData\"") == 0) {
-                        NSData *data = (NSData *)[model valueForKey:varName];
-                        sqlite3_bind_blob(stmt, i + 1, data.bytes, (int)data.length, NULL);
-                    }else if(strcasecmp(varType, "@\"UIImage\"") == 0) {
-                        UIImage *image = (UIImage *)[model valueForKey:varName];
-                        NSData *data = UIImageJPEGRepresentation(image, 1.0f);
-                        sqlite3_bind_blob(stmt, i + 1, data.bytes, (int)data.length, NULL);
-                    }
-                }else if([dataType isEqualToString:@"NULL"]) {
-                    // TODO:
                 }
+                
+                if(sqlite3_step(stmt) == SQLITE_DONE) {
+                    DLog(@"save success");
+                    rslt += 1;
+                }else {
+                    DLog(@"failed to save");
+                    if(self.useTransaction) {
+                        rslt = 0;
+                        break;
+                    }
+                }
+                sqlite3_reset(stmt);
             }
-            
-            if(sqlite3_step(stmt) == SQLITE_DONE) {
-                DLog(@"save success");
-            }else {
-                DLog(@"failed to save");
-            }
-            
             sqlite3_finalize(stmt);
         }else {
             DLog(@"can't compile sql");
+            rslt = 0;
+        }
+        
+        if(self.useTransaction) {
+            if (rslt == 0) {
+                [self rollback];
+            }else {
+                [self commit];
+            }
         }
         
         [self close];
@@ -371,44 +389,66 @@
     
     free(vars);
     
-    return NO;
+    return rslt;
 }
 
-- (BOOL)insertDBModel:(id)model
+- (NSInteger)insertDBModels:(NSArray *)models
 {
-    return [self saveDBModel:model isInsertion:YES];
+    return [self saveDBModels:models isInsertion:YES];
 }
 
-- (BOOL)saveDBModel:(id)model
+- (NSInteger)saveDBModels:(NSArray *)models
 {
-    return [self saveDBModel:model isInsertion:NO];
+    return [self saveDBModels:models isInsertion:NO];
 }
 
-- (BOOL)deleteDBModel:(id)model
+- (NSInteger)deleteDBModels:(NSArray *)models
 {
-    // TODO:
-    NSString *primaryKey = [[model class] primaryKey];
-    
-    NSString *columnName = [[model class] columnNameForIvar:primaryKey];
-    Ivar var = class_getInstanceVariable([model class], primaryKey.UTF8String);
-    const char *varType = ivar_getTypeEncoding(var);
-    NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
-    
-    
-    NSString *sql = nil;
-    
-    if([dataType isEqualToString:@"TEXT"] || [dataType isEqualToString:@"BLOB"]) {
-        sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@='%@';", [[model class] tableName], columnName, [model valueForKey:primaryKey]];
-    }else if([dataType isEqualToString:@"INTEGER"]) {
-        sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@=%ld;", [[model class] tableName], columnName, (long)[[model valueForKey:primaryKey] integerValue]];
-    }else if([dataType isEqualToString:@"FLOAT"]) {
-        sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@=%f;", [[model class] tableName], columnName, [[model valueForKey:primaryKey] doubleValue]];
-    }
-    
-    BOOL rslt = NO;
+    NSInteger rslt = 0;
     
     if([self open] ) {
-        rslt = [self execute:sql];
+        
+        if(self.useTransaction) {
+            [self beginTransaction];
+        }
+        
+        for(id model in models) {
+            NSString *primaryKey = [[model class] primaryKey];
+            
+            NSString *columnName = [[model class] columnNameForIvar:primaryKey];
+            Ivar var = class_getInstanceVariable([model class], primaryKey.UTF8String);
+            const char *varType = ivar_getTypeEncoding(var);
+            NSString *dataType = [Utilities sqlite3DataTypeOfTypeEncoding:varType];
+            
+            NSString *sql = nil;
+            
+            if([dataType isEqualToString:@"TEXT"] || [dataType isEqualToString:@"BLOB"]) {
+                sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@='%@';", [[model class] tableName], columnName, [model valueForKey:primaryKey]];
+            }else if([dataType isEqualToString:@"INTEGER"]) {
+                sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@=%ld;", [[model class] tableName], columnName, (long)[[model valueForKey:primaryKey] integerValue]];
+            }else if([dataType isEqualToString:@"FLOAT"]) {
+                sql = [NSString stringWithFormat:@"DELETE FROM %@ WHERE %@=%f;", [[model class] tableName], columnName, [[model valueForKey:primaryKey] doubleValue]];
+            }
+            
+            BOOL success = [self execute:sql];
+            
+            if(success) {
+                rslt += 1;
+            }else {
+                if(self.useTransaction) {
+                    rslt = 0;
+                    break;
+                }
+            }
+        }
+        
+        if(self.useTransaction) {
+            if(rslt == 0) {
+                [self rollback];
+            }else {
+                [self commit];
+            }
+        }
         
         [self close];
     }

@@ -20,7 +20,7 @@ static const int textCount = 7;
 static const char * textTypes[textCount] = {"*", "@\"NSString\"", "@\"NSMutableString\"", "@\"NSArray\"", "@\"NSMutableArray\"", "@\"NSDictionary\"", "@\"NSMutableDictionary\""};
 
 static const int blobCount = 2;
-static const char * blobTypes[blobCount] = {"@\"UIImage\"", "@\"NSData\""};
+static const char * blobTypes[blobCount] = {"@\"NSData\""};
 
 @implementation Utilities
 

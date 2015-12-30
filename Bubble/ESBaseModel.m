@@ -53,6 +53,7 @@
     
     
     [sql appendString:@");"];
+    
     return sql;
 }
 

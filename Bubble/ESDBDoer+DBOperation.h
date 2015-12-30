@@ -30,10 +30,11 @@
 
 - (NSArray *)queryDBModel:(Class)clz;
 
-- (BOOL)insertDBModel:(id)model;
+// if useTransaction is YES, return is 0 or models.count; otherwise, return successful insertion count.
+- (NSInteger)insertDBModels:(NSArray *)models;
 
-- (BOOL)saveDBModel:(id)model;
+- (NSInteger)saveDBModels:(NSArray *)models;
 
-- (BOOL)deleteDBModel:(id)model;
+- (NSInteger)deleteDBModels:(NSArray *)models;
 
 @end
